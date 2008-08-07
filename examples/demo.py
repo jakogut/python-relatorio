@@ -53,6 +53,7 @@ inv = Invoice(customer={'name': 'John Bonham',
               trombine=(file('bouteille.png', 'r'), 'image/png'))
 
 
+# ODT
 _, basic_report = repos.reports[Invoice]['basic']
 file('bonham_basic.odt', 'w').write(basic_report(inv).render().getvalue())
 _, report = repos.reports[Invoice]['complicated']
@@ -61,6 +62,7 @@ file('bonham_complicated.odt', 'w').write(report(inv).render().getvalue())
 # ODS
 _, ods_report = repos.reports[Invoice]['pivot']
 file('bonham_pivot.ods', 'w').write(ods_report(inv).render().getvalue())
+
 # ODP
 _, odp_report = repos.reports[Invoice]['presentation']
-file('bonham_presentation.ods', 'w').write(ods_report(inv).render().getvalue())
+file('bonham_presentation.odp', 'w').write(odp_report(inv).render().getvalue())
