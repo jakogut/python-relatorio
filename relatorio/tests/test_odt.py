@@ -11,7 +11,7 @@
 #
 # This program is distributed in the hope that it will be useful, but WITHOUT
 # ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS
-# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more 
+# FOR A PARTICULAR PURPOSE. See the GNU General Public License for more
 # details.
 #
 # You should have received a copy of the GNU General Public License along with
@@ -34,13 +34,13 @@ from genshi.template.eval import UndefinedError
 from templates.opendocument import Template, GENSHI_EXPR
 
 def pseudo_gettext(string):
-    catalog = {'Mes collègues sont:': 'My collegues are:',
+    catalog = {'Mes collègues sont:': 'My colleagues are:',
                'Bonjour,': 'Hello,',
-               'Je suis un test de templating en odt.': 
+               'Je suis un test de templating en odt.':
                 'I am an odt templating test',
                'Felix da housecat': unicode('Félix le chat de la maison',
                                             'utf8'),
-               'We sell stuffs': u'On vend des brols',
+               'We sell stuff': u'On vend des choses',
               }
     return catalog.get(string, string)
 
@@ -54,7 +54,7 @@ class TestOOTemplating(object):
         self.data = {'first_name': u'Trente',
                      'last_name': unicode('Møller', 'utf8'),
                      'ville': unicode('Liège', 'utf8'),
-                     'friends': [{'first_name': u'Camille', 
+                     'friends': [{'first_name': u'Camille',
                                   'last_name': u'Salauhpe'},
                                  {'first_name': u'Mathias',
                                   'last_name': u'Lechat'}],
@@ -65,7 +65,7 @@ class TestOOTemplating(object):
                                 (file(os.path.join(thisdir, 'two.png')),
                                  'image/png')],
                      'oeuf': file(os.path.join(thisdir, 'egg.jpg')),
-                     'footer': u'We sell stuffs'}
+                     'footer': u'We sell stuff'}
 
     def test_init(self):
         "Testing the correct handling of the styles.xml and content.xml files"
@@ -80,17 +80,16 @@ class TestOOTemplating(object):
         xmlns:xlink="urn:xlink">
         <text:a xlink:href="relatorio://foo">foo</text:a>
         </b:a>''' % 'urn:text'
-        parsed = self.oot.insert_directives(xml) 
-        root = lxml.etree.parse(StringIO(xml)).getroot()
-        root_parsed = lxml.etree.parse(parsed).getroot()
-        eq_(root_parsed[0].attrib['{http://genshi.edgewall.org/}replace'], 
-            'foo')
+        interpolated = self.oot.insert_directives(xml)
+        root_interpolated = lxml.etree.parse(interpolated).getroot()
+        root_attrs = root_interpolated[0].attrib
+        eq_(root_attrs['{http://genshi.edgewall.org/}replace'], 'foo')
 
     def test_styles(self):
         "Testing that styles get rendered"
         stream = self.oot.generate(**self.data)
         rendered = stream.events.render()
-        ok_('We sell stuffs' in rendered)
+        ok_('We sell stuff' in rendered)
 
         dico = self.data.copy()
         del dico['footer']
@@ -116,8 +115,8 @@ class TestOOTemplating(object):
         ok_("I am an odt templating test" in translated_xml)
         ok_('Felix da housecat' not in translated_xml)
         ok_('Félix le chat de la maison' in translated_xml)
-        ok_('We sell stuffs' not in translated_xml)
-        ok_('On vend des brols' in translated_xml)
+        ok_('We sell stuff' not in translated_xml)
+        ok_('On vend des choses' in translated_xml)
 
     def test_images(self):
         "Testing the image replacement directive"
@@ -143,18 +142,23 @@ class TestOOTemplating(object):
 
     def test_regexp(self):
         "Testing the regexp used to find relatorio tags"
-        regexp = re.compile(GENSHI_EXPR)
-        group = regexp.match('for each="foo in bar"').groups()
-        eq_(group, ('for each="foo in bar"', None, 'for', ' each="foo in bar"',
-                    'each', 'foo in bar'))
-        group = regexp.match('foreach="foo in bar"').groups()
-        eq_(group, ('foreach="foo in bar"', None, None, None, None, None))
-        group = regexp.match('/for').groups()
-        eq_(group, ('/for', '/', 'for', '', None, None))
-        group = regexp.match('/for ').groups()
-        eq_(group, ('/for ', '/', 'for', '', None, None))
-        group = regexp.match('formatLang("en")').groups()
-        eq_(group, ('formatLang("en")', None, None, None, None, None))
+        # a valid expression
+        group = GENSHI_EXPR.match('for each="foo in bar"').groups()
+        eq_(group, (None, 'for', 'each', 'foo in bar'))
+
+        # invalid expr
+        group = GENSHI_EXPR.match('foreach="foo in bar"').groups()
+        eq_(group, (None, None, None, None))
+
+        # valid closing tags
+        group = GENSHI_EXPR.match('/for').groups()
+        eq_(group, ('/', 'for', None, None))
+        group = GENSHI_EXPR.match('/for ').groups()
+        eq_(group, ('/', 'for', None, None))
+
+        # another non matching expr
+        group = GENSHI_EXPR.match('formatLang("en")').groups()
+        eq_(group, (None, None, None, None))
 
     def test_str(self):
         "Testing that a RelatorioStream str returns a bitstream"
